@@ -1,0 +1,93 @@
+-------------------------------------------------------------------------------
+$Id: ssl.txt 490 2004-01-10 15:52:40Z wd $
+-------------------------------------------------------------------------------
+[Table of Contents]:
+...1: Implementation details
+...2: Getting SSL support working
+...3: Generating a self-signed certificate
+...4: FAQs
+-------------------------------------------------------------------------------
+[1: Implementation details]:
+
+Currently ithildin uses OpenSSL for its SSL library.  It supports both
+OpenSSL 0.9.6 and OpenSSL 0.9.7, and should support future versions as well.
+
+That said, it does not make completely full use of OpenSSL's capabilities.
+In particular it does have support for CRLs (Certificate Revocation Lists)
+and does not allow for end-user configuration of some specific parameters
+(such as the available cipher list).
+
+However, most basic SSL functionality is supported.  The socket API can
+function as both an SSL client and an SSL server with the caveat that as an
+SSL client it still requires a key, though the SSL specification makes no
+such demands.
+
+-------------------------------------------------------------------------------
+[2: Getting SSL support working]:
+
+Getting SSL supporting working can be relatively painless depending on your
+system of choice.  For most all free Unixes it is as simple as
+adding/uncommenting the 'ssl' section to your main configuration file
+(usually ithildin.conf) and setting up the necessary private/public key
+pair.  If, however, you use a system without a random number generating
+device (/dev/random) you will have to go through the extra steps of setting
+up EGD.  That is not covered here, and instead you should refer to OpenSSL's
+documentation on this.
+
+You can also, at your option, use your own specific CA (certificate
+authority) file with the public keys of CAs which you wish to trust.  This
+may be necessary for certain modules, because the SSL code requires that
+when a key is presented to it that it be signed by a recognized certificate
+authority.
+
+-------------------------------------------------------------------------------
+[3: Generating a self-signed certificate]:
+
+Sometimes it is desirable to create a self-signed SSL certificate.  If you
+are testing, or are using SSL in a closed environment, or otherwise do not
+need the security added by a trusted third-party signing your SSL
+certificate, this is the way to go.  Generating a self-signed SSL
+certificate with OpenSSL is actually fairly trivial, just follow the steps
+below:
+
+#1: Decide where you want to put your certificates.  I recommend placing
+them in the directory containing the main server config files under an 'ssl'
+subdirectory.  So, if you have installed ithildin in /usr/local, and
+/usr/local/etc/ithildin is where your config files live, you would do the
+following:
+$ cd /usr/local/etc/ithildin
+$ mkdir ssl
+
+#2: Generate your certificate and private key.  This is done via the
+'openssl' command line utility in the following manner:
+$ openssl req -x509 -newkey rsa:1024 -keyout ssl/key.pem -out ssl/cert.pem
+This will ask you various questions about your locality for the purposes of
+the key.  Most of these are straightforward, HOWEVER, the "Common name"
+field should not be filled with your personal name, but rather the hostname
+that your server will be calling itself.  You can, at your discretion,
+create your rsa key using more than 1024 bits (and this is recommended.
+2048 is a good value, and even 4096 is not unreasonable on faster hardware).
+
+Also, don't forget to make sure your private key is made as private as
+possible.  At least remember to change the access modes on it so that it can
+only be accessed by the user the server will be running as.  Doing something
+like the following should achieve this:
+$ chmod u=rw,go= ssl/key.pem
+$ chown <whoever> ssl/key.pem
+
+#3: This step is optional, and is actually provided simply because a lot of
+people want to know.  By default, OpenSSL requires that you encrypt your
+private key with a passphrase.  It will then prompt you for that passphrase
+every time you start the server.  You can decrypt the RSA key (removing the
+need for passphrase entry on startup).  I don't recommend that you do this,
+but you may find it necessary/useful.  If so, do the following:
+$ openssl rsa -in ssl/key.pem -out ssl/key2.pem
+[enter passphrase]
+$ mv ssl/key2.pem ssl/key.pem
+And you'll be all set.
+
+-------------------------------------------------------------------------------
+[4: FAQs]:
+
+<left blank>
+

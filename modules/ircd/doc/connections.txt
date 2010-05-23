@@ -1,0 +1,57 @@
+###############################################################################
+#
+# connections.txt: description of the ircd's connection handling process
+#
+# Copyright 2002 the Ithildin Project.
+# See the COPYING file for more information on licensing and use.
+#
+# $Id: connections.txt 579 2005-08-21 06:38:18Z wd $
+#
+###############################################################################
+
+All new connections are accepted at one point, and must go through three
+levels of ACL clearing.
+
+The first is what was referred to in other daemons as a Z:line check.  It is
+done before any ident/dns requests are begun, and is explicitly a check to
+see if the IP is not allowed.  This can be added with:
+
+acl {
+        stage 1;
+        host "a.b.c.d"; // valid are: individual host, host/mask, and host:mask
+        access deny;
+};
+
+The second stage is one which didn't exist in previous daemons, it is
+checked before a connection's protocol is known (i.e. you don't know if it's
+a client or server), but after dns and ident checks are done.  An ACL to
+deny all non-ident connections might look like:
+
+acl {
+        stage 2;
+        host "~@*";
+        class blarfle; // put the connection in the 'blarfle' class.
+        access deny;
+};
+
+This is a lot different than the old method of operationg.  Connections can
+be put into classes a little earlier.  If you opt not to, the connection
+will be in the default class.  This can be redefined in a stage 3 acl, or
+(if the connection is a server) in the 'server' directive.
+
+The last stage is specifically for clients, and allows the finest grained
+control, it has the following form:
+acl {
+        stage 3; // this is optional, an ACL is assumed to be in stage 3
+        host "foo@bar.com"; // all user@host checks work now
+        class coolfolk;
+        access allow;
+};
+
+Here, again, the class can be selected.  Typically it is best to set a class
+at this level, and not at level 2.  The 'access' item now has an optional
+third type, 'allow-always', which will allow the connection on even if it
+surpasses the limits set by its owner class.  This allows one to emulate the
+old hybrid E:lines.
+
+

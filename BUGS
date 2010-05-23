@@ -1,0 +1,26 @@
+-------------------------------------------------------------------------------
+$Id: README 658 2006-01-10 05:28:44Z wd $
+-------------------------------------------------------------------------------
+
+If you believe you have found a bug in either the core system or the
+provided modules you are invited to file a defect in our bug tracking
+database.
+
+When filing a bug please provide or be ready to provide the following:
+- Host operating system, versions of major libraries
+- (if built by you from code): Compiler and other build environment tools
+- (if at all possible) a concise list of steps required to reproduce the bug
+- Peculiar configuration details about your environment.  You may be
+  requested to provide the entire configuration (contents of your etc
+  directory).
+- Log data (especially error/warning messages) around the time of the issue
+
+If you are receiving a particular error message *PLEASE PLACE IT IN THE
+BUG*.  This helps others to find your bug and avoids filing of duplicate
+bugs.
+
+Before filing a new defect you are encouraged to first peruse the existing
+database to see if your defect has already been filed, and possibly fixed in
+a later version.
+
+The bug database is available at: http://bugs.ithildin.org/

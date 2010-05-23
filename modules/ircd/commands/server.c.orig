@@ -1,0 +1,285 @@
+/*
+ * server.c: the SERVER command
+ * 
+ * Copyright 2002 the Ithildin Project.
+ * See the COPYING file for more information on licensing and use.
+ */
+
+#include <ithildin/stand.h>
+
+#include "ircd.h"
+
+IDSTRING(rcsid, "$Id: server.c 832 2009-02-22 00:50:59Z wd $");
+
+MODULE_REGISTER("$Rev: 832 $");
+/*
+@DEPENDENCIES@: ircd
+*/
+
+#ifdef HAVE_OPENSSL
+#include <openssl/ssl.h>
+#include <openssl/x509.h>
+static bool server_ssl_verify(server_t *);
+#endif
+
+/* the SERVER command should only come from...servers 
+ * argv[1] == the server's name
+ * argv[2] == the server's hopcount
+ * argv[3] == the server's info */
+SERVER_COMMAND(server, 3, 3, COMMAND_FL_UNREGISTERED) {
+    conf_entry_t *cep;
+    conf_list_t *clp;
+    char *s, *pass;
+    server_t *sp;
+    int servers = 0;
+    connection_t *cp;
+
+    /* if this command came from a local connection which is not registered
+     * (that is, not authenticated), drop it with no access, otherwise,
+     * there's no reason to worry as it is simply introducing other servers
+     * further away */
+    if (MYSERVER(srv) && !(srv->flags & IRCD_SERVER_REGISTERED)) {
+        char ip[FQDN_MAXLEN];
+
+        /* see if we have any entries for them in the conf file */
+        cep = conf_find("server", argv[1], CONF_TYPE_LIST, *ircd.confhead, 1);
+        if (cep != NULL)
+            clp = cep->list;
+        else
+            clp = NULL;
+
+        srv->conf = clp; /* update the conf entry if necessary */
+
+        if (clp == NULL) {
+            /* no access for this server */
+            destroy_server(srv, "no access (conf)");
+            return IRCD_CONNECTION_CLOSED;
+        }
+
+        /* check to see if the server already exists and isn't us */
+        if ((sp = find_server(argv[1])) != NULL && sp != srv) {
+            /* if it already exists, destroy this link. */
+            sendto_flag(SFLAG("GNOTICE"),
+                    "Link %s cancelled, server %s already exists",
+                    srv->conn->host, argv[1]);
+            sendto_serv_butone(srv, NULL, ircd.me, NULL, "GNOTICE",
+                    ":Link %s cancelled, server %s already exists",
+                    srv->conn->host, argv[1]);
+            destroy_server(srv, "Server Exists");
+            return IRCD_CONNECTION_CLOSED;
+        }
+
+        /* check if we're already holding another server and we're not a
+         * hub. */
+        LIST_FOREACH(cp, ircd.connections.servers, lp) {
+            if (SERVER_REGISTERED(cp->srv))
+                servers++;
+        }
+        if (servers > 1 && !SERVER_HUB((ircd.me))) {
+            destroy_server(srv, "I'm a leaf, not a hub!");
+            return IRCD_CONNECTION_CLOSED;
+        }   
+        
+        /* fill in data.  we do this up here to allow for more informative
+         * error messages, especially from the ssl verify routine. */
+        strncpy(srv->name, argv[1], SERVLEN);
+        srv->hops = 1; /* our connection */
+        strncpy(srv->info, argv[3], GCOSLEN);
+        srv->parent = ircd.me; /* we're their parent (or legal guardian) */
+        server_set_flags(srv);
+
+        /* check their credentials.  we do this differently depending on
+         * whether the server is using an SSL connection or not.  in the
+         * non-SSL case we do a password check, and verify that the server is
+         * coming from the address that is configured. */
+#ifdef HAVE_OPENSSL
+        if (SOCKET_SSL(srv->conn->sock)) {
+            if (!server_ssl_verify(srv)) {
+                destroy_server(srv, "no access (SSL)");
+                return IRCD_CONNECTION_CLOSED;
+            }
+        } else
+#endif
+        {
+            /* address first...*/
+            get_socket_address(isock_raddr(srv->conn->sock), ip, FQDN_MAXLEN,
+                    NULL);
+            s = conf_find_entry("address", clp, 1);
+            if (s == NULL || strcmp(s, ip)) {
+                destroy_server(srv, "no access (ip mismatch or no addr)");
+                return IRCD_CONNECTION_CLOSED;
+            }
+
+            /* now check passwords. */
+            if ((pass = conf_find_entry("theirpass", clp, 1)) == NULL) {
+                destroy_server(srv, "no access (no pass)");
+                return IRCD_CONNECTION_CLOSED; /* passwordless servers are a bad
+                                           idea! */
+            }
+
+            if (srv->conn->pass == NULL || strcmp(pass, srv->conn->pass)) {
+                destroy_connection(srv->conn, "password mismatch");
+                return IRCD_CONNECTION_CLOSED; /* password mismatch */
+            }
+        }
+
+        /* okay, they pass the auth checks.  introduce ourselves to them, and
+         * add them to the servers list, and fill in their structure.  all that
+         * goodness. */
+        if (!(srv->flags & IRCD_SERVER_INTRODUCED))
+            server_introduce(srv);
+
+        server_establish(srv);
+        server_register(srv);
+    } else {
+        /* okay, introducing other servers.  srv is actually the server to which
+         * the newly introduced server is linked */
+
+        /* first, see if they can introduce this server.  we only check if
+         * 'srv' is connected to us (XXX: should we be more strict about
+         * defining hub access?  I don't think so, but hey. */
+        if (MYSERVER(srv)) {
+            s = NULL;
+            while ((s = conf_find_entry_next("hub", s, srv->conf, 1))
+                    != NULL) {
+                if (match(s, argv[1]))
+                    break; /* okay. */
+            }
+            if (s == NULL) {
+                /* no match found.  they can't hub! */
+                sendto_flag(SFLAG("GNOTICE"),
+                        "Non-Hub link %s introduced %s.", srv->name, argv[1]);
+                sendto_serv_butone(srv, NULL, ircd.me, NULL, "GNOTICE",
+                        ":Non-Hub link %s introduced %s.", srv->name, argv[1]);
+                destroy_server(srv, "Too many servers.");
+                return IRCD_CONNECTION_CLOSED;
+            }
+        }
+
+        if (find_server(argv[1]) != NULL)
+        {
+            server_t *uplink = srv_server_uplink(srv);
+
+            /* Trying to introduce a server we already know about?  We'll
+             * just drop this link right away.
+             * XXX: Some ircds drop the link which is newest, not
+             * necessarily the link that didn't have the server before.  I'm
+             * not sure what the rationale is here, but it might be worth
+             * evaluating at a later date. */
+            sendto_flag(SFLAG("GNOTICE"),
+                    "Server %s trying to introduce existing server %s%s%s",
+                    srv->name, argv[1],
+                    srv != uplink ? " via " : "",
+                    srv != uplink ? uplink->name : "");
+            sendto_serv_butone(srv, NULL, ircd.me, NULL, "GNOTICE",
+                    "Server %s trying to introduce existing server %s%s%s",
+                    srv->name, argv[1],
+                    srv != uplink ? " via " : "",
+                    srv != uplink ? uplink->name : "");
+            destroy_server(uplink, "trying to introduce existing server");
+
+            return IRCD_CONNECTION_CLOSED;
+        }
+
+        sp = create_server(NULL);
+        /* fill in data */
+        strncpy(sp->name, argv[1], SERVLEN);
+        sp->hops = str_conv_int(argv[2], 1); /* trust their hopcount. hm. */
+        strncpy(sp->info, argv[3], GCOSLEN);
+        sp->parent = srv; /* the sending server is their parent */
+        cep = conf_find("server", argv[1], CONF_TYPE_LIST, *ircd.confhead, 1);
+        if (cep != NULL)
+            sp->conf = cep->list;
+
+        server_set_flags(sp);
+        server_register(sp);
+    }
+
+    return 0;
+}
+
+/* this is effectively a big hack to get around rfc1459 stuff.  when a server
+ * connects, the system basically thinks it's an rfc1459 *client*.  This is of
+ * course not true for servers, so when the ostensible 'client' sends a SERVER
+ * command, we morph them from a client to a server via some really sketchy
+ * activity (noted below).  This *IS* an awful hack, though gladly it's only in
+ * place for servers without PROTOCOL command support. */
+CLIENT_COMMAND(server, 3, 3, COMMAND_FL_UNREGISTERED) {
+    connection_t *cp;
+    protocol_t *pp;
+    conf_entry_t *cep;
+    conf_list_t *clp;
+    char *s;
+    int ret;
+
+    if ((cep = conf_find("server", argv[1], CONF_TYPE_LIST, *ircd.confhead, 1))
+            != NULL)
+        clp = cep->list;
+    else {
+        destroy_client(cli, "no access (no server section)");
+        return IRCD_CONNECTION_CLOSED;
+    }
+
+    /* if there's no protocol entry or we can't find the protocol, close. */
+    if ((s = conf_find_entry("protocol", clp, 1)) == NULL ||
+            (pp = find_protocol(s)) == NULL) {
+        destroy_client(cli, "no access (no protocol)");
+        return IRCD_CONNECTION_CLOSED;
+    }
+
+    /* now we mock up a server connection.  joy of joys, our pass should still
+     * have been saved.  we just reset the protocol, and setup the connection,
+     * and then call the server version of the SERVER command.  This is pretty
+     * dirty. :/ */
+    cp = cli->conn;
+    assert(cp != NULL);
+    set_connection_protocol(cp, pp);
+    if ((ret = s_server_cmd(NULL, argc, argv, cp->srv)) != 0)
+        return ret; /* Give them whatever s_server_cmd gave, it will always
+                       return 0 on success, anything else is an error. */
+
+    /* Inform them that the protocol has been changed. */
+    return IRCD_PROTOCOL_CHANGED;
+}
+
+#ifdef HAVE_OPENSSL
+/* This function is used to verify the legitimacy of an SSL connection from a
+ * server.  At present this simply checks that the certificate provided by the
+ * server have a commonName which matches that of the server configured.  The
+ * reason for this seeming lack of insecurity is that *by default* we require
+ * only verifiable SSL certificates to be allowed when making connections.
+ * Meaning that unless the user unwisely turns this off we can assume that the
+ * certificate being provided by the server is signed by a trusted third party.
+ * Most excellent. ;) */
+static bool server_ssl_verify(server_t *sp) {
+    X509 *cert;
+    X509_NAME *xnp;
+    char buf[256];
+
+    if ((cert = SSL_get_peer_certificate(sp->conn->sock->ssl)) == NULL) {
+        log_warn("No SSL certificate given for server %s[%s@%s]", sp->name,
+                sp->conn->user, sp->conn->host);
+        return false; /* erm.  no. */
+    }
+
+    /* After digging through the OpenSSL source for about an hour I think that
+     * I have found the correct way to extract the commonName field from an
+     * X509 certificate.  I sure hope so!  */
+    xnp = X509_get_subject_name(cert);
+    if (X509_NAME_get_text_by_NID(xnp, NID_commonName, buf, 256) < 1) {
+        log_warn("Could not get commonName from cert given by server "
+                "%s[%s@%s]", sp->name, sp->conn->user, sp->conn->host);
+        return false;
+    }
+    /* buf should now contain the commonName of the sender. */
+    if (strcasecmp(buf, sp->name)) {
+        log_warn("commonName (%s) in cert given by server %s[%s@%s] does not "
+                "match", buf, sp->name, sp->conn->user, sp->conn->host);
+        return false;
+    }
+
+    /* okay.  all set. */
+    return true;
+}
+#endif
+/* vi:set ts=8 sts=4 sw=4 tw=76 et: */

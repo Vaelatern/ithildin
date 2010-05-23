@@ -1,0 +1,30 @@
+###############################################################################
+#
+# hostmatch.txt: brief description of the hostmatch() pattern matcher
+#
+# Copyright 2002 the Ithildin Project.
+# See the COPYING file for more information on licensing and use.
+#
+# $Id: hostmatch.txt 490 2004-01-10 15:52:40Z wd $
+#
+###############################################################################
+
+the host pattern matcher is much like the regular one, with two specific
+additions, the collator and the lister.  they work something like this:
+a collator is a sequence that combines several individual characters into
+one acceptable list.  Let's say for instance you want to accept all users
+who are in the IP range 192.168.42.100 - 192.168.42.149, you could do:
+192.168.42.1[01234][:number:], the [01234] matches any of the characters 0,
+1, 2, 3, or 4.  the [:number:] item matches any one digit.  Also allowed is
+the [:alpha:] special collator, which allows any alphabetical character
+(a-zA-Z), and the [:alnum:] collator, which allows any alphabetical
+character or numerical character (like combining alpha and number, or
+a-zA-Z0-9)
+
+The other feature, the list feature, allows you to specify a list of
+acceptable letter(s), each accepted item separated by a | (pipe) character.
+For instance, if you would like to match hosts on either anduril.org or
+telekinesis.org, you could use the mask "*(anduril|telekinesis).org", or if
+you wanted to match any user (presumably) in the USA, you might use
+"*.(com|net|org|mil|us)".
+

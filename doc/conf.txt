@@ -1,0 +1,61 @@
+###############################################################################
+#
+# conf.txt: documentation on the configuration file format
+#
+# Copyright 2002 the Ithildin Project.
+# See the COPYING file for more information on licensing and use.
+#
+# $Id: conf.txt 490 2004-01-10 15:52:40Z wd $
+#
+###############################################################################
+
+The conf parser:
+The format for configuration files for this daemon has been popularized by
+bind8, and is looks somewhat like C or perl.  Format specs are as follows:
+
+the most basic unit is a single element, which looks like this:
+element "data";
+
+The quotes are optional.  Double quotes (") cause 'expansion' which
+currently works only for backquoting (i.e. "\"foo\"" produces an entry which
+is literally "foo").  No other quoting is supported.  Data does not
+necessarily need to be quoted, but it is both safer and more readable to
+quote.  All 'statements' must end in a semicolon (;) to be valid.
+
+the other supported unit is a list, which looks like this:
+list {
+  element1 "an element";
+  element2 "another element";
+};
+
+lists are groups for elements.  additionally, lists may contain sub-lists
+(this is recursive, there may be any depth of sub-lists desired.).  Lists
+are always delimited by curly brackets ({}).  Lists must end in a semicolon
+(;) to be valid.
+
+Additionally, other files may be included using a C-style include directive
+such as this:
+$INCLUDE "otherfile"
+Other functionality using $... directives may be added later.  Do not use
+anything but the '$INCLUDE' directive.
+
+To be processed an include directive must be the first non-whitespace data
+on a line.  the file may either be quoted or unquoqted.  C-style triangle
+braces (<>) are not supported.
+
+Comments may be either C++ // style comments or C /* */ style comments.  //
+comments last until the end of the line. /* */ comments encapsulate all data
+between the /* and */. additional /* markers inside a C style comment are
+ignored.  The # character may also be used as a comment character.
+
+For an example of a configuration file, see the file 'example.conf' in this
+directory.
+
+
+Accessing configuration data within the code:
+Upon startup the global configuration file (typically
+/usr/local/etc/ithildin/ircd.conf) is read in.  The global tree is placed in
+a pointer to a conf_list structure (see conf.h) called config_head.
+Sub-lists can be searched for using the conf_find_list function, similarly
+individual entries can be searched for using conf_find_entry.  Recursion may
+be specified to make searches more likely to return the correct result.

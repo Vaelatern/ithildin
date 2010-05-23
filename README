@@ -1,0 +1,154 @@
+-------------------------------------------------------------------------------
+$Id: README 852 2010-05-18 1937Z elly $
+-------------------------------------------------------------------------------
+[Table of Contents]:
+...0: Preface / Requirements
+...1: Getting the source
+...2: Compiling
+...3: Installing
+...4: Running
+...5: Help!  It didn't work!
+..98: Credits
+..99: Contact
+-------------------------------------------------------------------------------
+
+WARNING WARNING WARNING WARNING WARNING
+The custom memory allocator has been removed in this revision and all subsequent
+ones. If you are using ithildin, and this causes crashes for you, please tell us
+in irc.darkmyst.org #ithildin.
+WARNING WARNING WARNING WARNING WARNING
+
+[0: Preface / Requirements]:
+
+Reading READMEs from start to finish is usually a good idea.  They tend to
+contain a lot of information that is valid/valuable for 99% of users.  That
+being said, I've tried to keep things short and to the point for those of you
+who have little patience.  Before you start running the daemon, you should read
+the below list of requirements to make sure you've got everything you need.
+
+Requirements:
+1. A modern Unix.  At the present time this system is not designed to run on
+   anything but Unix and Unix-variant systems.  I will be doing a win32
+   version "real soon now" unless Microsoft fires me and I go back to
+   working on Unix systems as a dayjob. :)
+2. Access to a C compiler, and a few megabytes of space.  You can install this
+   system as a regular user, but you will need the compiler and space.
+3. At least moderate knowledge of working with files on your system.  You're
+   going to need to know how to edit configuration files, run programs, and
+   probably move data around.  I've tried to make things fairly clear, but
+   YMMV.
+4. A module which you wish to run.  The base system doesn't come with any
+   modules, you'll need to get them on your own.  There are some available
+   from the site where the base system is hosted.
+5. GNU Make.  On Linux this is invariably the regular 'make' which you
+   already have.  On BSD systems (and others) it may be installed as
+   'gmake'.
+
+-------------------------------------------------------------------------------
+[1: Getting the source]:
+
+The source code for ithildin can currently be retrieved from one of two
+places: Subversion (like CVS) or the website.  If you 
+
+* The website is at http://ithildin.org/dist/
+
+* The subversion repository is located at:
+  http://svn.ithildin.org/repo/trunk/ithildin
+  To check out the latest code from the svn repository, you can do:
+  $ svn co http://svn.ithildin.org/repo/trunk/ithildin
+  If you do not have subversion installed on your system it can be retrieved
+  from http://subversion.tigris.org/.  Please note that getting the svn copy
+  of the source will give you every module in the system.  You might not
+  want that.
+
+-------------------------------------------------------------------------------
+[2: Compiling]:
+
+This system should be relatively straightforward to compile.  You'll need to do
+the following:
+
+1) Extract any modules you wish to use in the "modules/" directory.  For
+example let us say you downloaded the "syslog" module package in your home
+directory, you would do:
+$ cd ithildin/modules
+$ tar -zxf ~/syslog.tar.gz
+
+2) If you got the source from svn, you'll need to generate a configure script.
+This is done by using the 'autoconf' command, like so:
+$ autoconf -o configure autoconf/configure.ac
+If you downloaded the source from somewhere else this step is not necessary.
+
+3) Configure the system using the configure script by doing:
+$ ./configure --prefix=foo
+(you might wish to run configure with the --help option to see if you're
+interested in using any addons).  If you want to install system-wide you'll
+probably want a prefix of '/usr' or '/usr/local'.  If you want to install in
+your home directory, you'll probably want to use --prefix=/home/yourdir or
+--prefix=/home/yourdir/ithildin (to keep it separate from other stuff).
+And if you're installing in a home directory or somewhere separate from
+other system binaries/libraries you will probably want to use the
+--disable-dir-suffix option to configure.  It will keep the directory
+structure in a cleaner condition.  Also, if you've got a bunch of stuff in
+modules/ but you only want to compile some (or one) module you should do:
+$ ./configure ... --with-modules="module1 module2 module3"
+Replacing module1, etc with the names of the modules you want compiled and
+installed.
+
+4) Build the source by doing:
+$ make
+Any 'make' variant should suffice here.
+
+That's it.  If all of this went well, then you can move on to the installing
+step.  If not, see section 4.
+
+-------------------------------------------------------------------------------
+[3: Installing]:
+
+Installation is, as building, relatively simple, you should be able to install
+the system by simply doing:
+
+$ make install
+
+That's it.  If all went well, move on to the next section.  If not, see section
+4.
+
+-------------------------------------------------------------------------------
+[4: Running]:
+
+You'll probably need to configure the system before you run it.  Look in
+$prefix/etc/ithildin/ for the various configuration files.
+
+-------------------------------------------------------------------------------
+[5: Help!  It didn't work!]:
+
+Right now there is no FAQ for "it didn't work" type issues, however you are
+invited to file a defect (see the BUGS file) if you believe this is a defect
+in the product and not an error in your configuration.
+
+-------------------------------------------------------------------------------
+[98: Credits]:
+
+See the DEVELOPERS file for a list of developers who are/have been involved
+with the project.
+
+-------------------------------------------------------------------------------
+[99: Contact]:
+
+The current maintainer of Ithildin is elly on irc.darkmyst.org or
+irc.freenode.net. The old maintainer information is below, but beware that wd no
+longer maintains this project and will probably not take patches.
+
+You can contact me (the maintainer) using the following details:
+
+Real life: Chip Norkus
+Email    : wd@ithildin.org
+Address  : If you really really want it just ask.
+IRC      : DALnet (occasionally): wd
+           EFnet (always on, sometimes idle): wd
+AIM      : doubleyewdee
+MSN      : wd@teleri.net
+
+Please only e-mail me if you have questions NOT answered in the documentation
+here.  Please do not e-mail me about third-party modules or things wholly
+unrelated to this project.  Thank you.
+

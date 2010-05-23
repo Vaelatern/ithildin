@@ -1,0 +1,699 @@
+// $Id: conf.txt 831 2009-02-09 00:42:56Z wd $
+
+/*
+** This file contains detailed information on every configuration option
+** supported by the core ircd module and its addons/commands/etc.  Each
+** option is listed in the following fashion:
+** // option: required module (type)
+** // syntax of option data and information on the option
+**
+** for example:
+** // global: (required)
+** // the global section contains various generic configuration options
+** // for the server.
+**
+** The options are listed in alphabetical order without respect to module
+** origin.  Where defaults exist the options are listed with their default
+** values in place.
+*/
+
+// addon: (optional)
+// This directive loads 'addon' modules (found in <libdir>/ircd/addons/)
+addon <some-addon-here>;
+
+// acl: addons/acl (optional)
+// The acl section creates an Access Control List entry.  It may be
+// specified with an optional number to sort it into a specific position in
+// the list.  ACL numbers are from 0 to 65535
+acl [number] {
+    // access: (required)
+    // This specifies the access type of this ACL.  There are currently only
+    // two types available: allow and deny.
+    access <allow|deny>;
+
+    // class: (optional)
+    // This specifies the class associated with this ACL.  For allow rules
+    // it will place the connection in the specified class.  This has no
+    // effect for deny rules.
+    class <some class name>;
+
+    // host: (required, or host-list)
+    // This specifies the host pattern an ACL should be matched against.  It
+    // can be used multiple times in a single acl section.  It takes the
+    // form of a host pattern with either an optional username (either
+    // user@host or host only).
+    host <some host pattern>;
+
+    // host-list: (required, or host)
+    // This specifies a host-list to use for this ACL.  See the host-list
+    // information further down in this file.
+    host-list <some host-list>;
+
+    // info: (optional)
+    // This provides a pattern to match against a connecting client's info
+    // or GECOS field.  The pattern must be matched for the ACL to activate.
+    // This only works for deny entries in stage 3.
+    info <some pattern>;
+
+    // pass: (optional)
+    // This specifies a connection password which is required to activate
+    // the ACL entry.  This only works for allow entries in stage 3.
+    pass <some password>;
+
+    // reason: (optional)
+    // This specifies a reason to be sent to the user when denying their
+    // connection.  This only works for deny entries.
+    reason "You are not authorized to use this server.";
+
+    // redirect: (optional)
+    // This specifies that a connection should be redirected to the
+    // specified server/port (server:port form).  If the port is left off
+    // it is assumed to be the default port (typically 6667).  This applies
+    // only to entries in stage 3.
+    // NB: redirect ACLs are always deny type.  That is, the redirect message
+    // is provided and then the connection is closed.
+    redirect <some-irc-server:some-port>;
+
+    // skip-dns: (optional)
+    // This option can be used to skip doing a dns lookup on a connection.
+    // It only works for allow entries in stage 1.
+    skip-dns no;
+
+    // skip-ident: (optional)
+    // This option can be used to skip doing an ident check on a connection.
+    // It only works for allow entries in stage 1.
+    skip-ident no;
+
+    // stage: (optional)
+    // This specifies at what stage of connection this acl is checked at.
+    // The three stages are 1 (immediately after connect), 2 (just after
+    // dns/ident checks), and 3 (for clients only, just after registration).
+    stage 3;
+};
+
+// channel-filter: addons/cmode_filter (optional)
+// This defines a list of characters or character types to block in messages
+// to channels.  The available options are:
+// - ansi: blocks ANSI sequences
+// - blink: blocks blinking text
+// - bold: blocks bold text
+// - chars: special directive, used as "chars:x" where 'x' is one or more
+//   characters to block.  The characters " \t," (space, tab, comma) cannot
+//   be blocked... why would you want to?
+// - color: blocks mIRC color sequences
+// - control: blocks *all* control codes (ascii 1 - 31)
+// - inverse: blocks inverse (reverse) text
+// - underline: blocks underlined text
+// The options should be specified as a space or comma separated list.
+channel-filter ansi, color;
+
+// channel-strip: addons/cmode_strip (optional)
+// This works exactly like the channel-filter config, but it takes
+// characters to *strip* from messages (see rant in addons/cmode_strip.c).
+channel-strip ansi, color;
+
+// class: ircd (required)
+// The class section is used to create a connection class which can be
+// assigned to connections (clients and servers) to specify various
+// parameters.  At least one class section is required.
+class <name> {
+    // hostmask: addons/hostmask (optional)
+    // This masks all users in this connection class to the given hostname.
+    // The special mask "cgi:irc" enables support for the CGI:IRC web gateway
+    // to pass in the user's real hostname via the PASS command.  If you set
+    // the hostmask to "cgi:irc" and a connection in the class either does not
+    // give a password or gives an invalid host the connection will be
+    // unmasked.
+    hostmask <some.host.name>;
+
+    // flood: (optional)
+    // This sets the maximum 'flood rating' of a connection in this class
+    // before it is disconnected.  Flood ratings apply only to clients.
+    flood 192;
+
+    // max: (optional)
+    // The max option specifies the maximum number of concurrent connections
+    // allowed from this class.  Setting it to 0 sets an infinite limit.
+    max 600;
+
+    // message-set: (optional)
+    // This option allows a specific message-set to be given to connections
+    // in this class.  If it is not specified then the default (first)
+    // message set is used.
+    message-set <some-mset>;
+
+    // mode: (optional)
+    // Provides a default mode for connections in this class.
+    mode "+i";
+
+    // motd: commands/motd (optional)
+    // This specifies a file containing a specific MOTD for clients in this
+    // connection class.
+    motd /confdir/ircd/motd;
+
+    // ping: (optional)
+    // The 'ping' option sets the maximum amount of time a connection can be
+    // idle for before it is disconnected.  At one-half the 'ping' time a
+    // "PING" request will be sent to the connection, if it responds (or is
+    // otherwise active) then the timer will be reset.
+    ping 180;
+
+    // privilege-set: (optional)
+    // This allows for a non-default privilege set to be given to clients
+    // connecting in this class.  It is possible to abuse this so that the
+    // /oper command is not needed, but such behavior is strongly
+    // discouraged.
+    privilege-set <some-pset>;
+
+    // sendq: (optional)
+    // The sendq option specifies how many messages may be queued for
+    // sending on a connection before it is disconnected.  IMPORTANT: this
+    // counts *messages* not *bytes*.
+    sendq 1000;
+
+    // short-motd: commands/motd (optional)
+    // This specifies a file containing a specific short (connection) MOTD
+    // for clients in this connection class.
+    short-motd /confdir/ircd/smotd;
+
+};
+
+// commands: (optional)
+// The commands section provides a list of commands to be loaded by the
+// server.  Each option or section is specified as 'command <foo>;'  Some
+// commands take special configuration options, others do not.  Commands
+// which take special options are listed explicitly here, others are not.
+commands {
+    command die {
+        // this is a password which, if specified, is required to use the
+        // command.
+        password "some-md5-password";
+    };
+};
+
+// default-acl-conf-rule: addons/acl
+// This sets the default rule number for configured entries (acl entries) in
+// the ACL.  This is used when inserting ACL entries which were added from
+// an ACL section in a configuration file.  The number may be from 0 to
+// 65535.
+default-acl-conf-rule 2000;
+
+// default-acl-rule: addons/acl
+// This sets the default rule number for entries in the ACL.  The default
+// rule number is where run-time created ACLs are placed.  The number may be
+// from 0 to 65535.  
+default-acl-rule 1000;
+
+// host-list: (optional)
+// Host lists can be used to create a single list of "hostmask" values which
+// can be used in operator and acl sections instead of individually
+// specifying "host" values.
+host-list <some-name> {
+    "some@host.mask";
+    "another@host.mask";
+};
+
+// global: (required)
+// the global section contains various generic configuration options
+// for the server.
+global {
+    // address: (optional)
+    // the default address on which connections are accepted
+    address 0.0.0.0;
+
+    // admin: (optional)
+    // this section provides up to three lines of information about the
+    // administrator.  each line should be placed as an individual quoted
+    // entry in the section.
+    admin {
+        "line the first.";
+        "line the second.";
+        "line the third.";
+    };
+
+    // chanlen: (optional)
+    // the maximum length of channel names
+    // NOTE 1: This cannot exceed CHANLEN as defined in ircd.h nor can it
+    //         be less than 9.
+    // NOTE 2: If this is not unified across all servers you will be
+    //         gauranteed to have HUGE problems.
+    chanlen 32;
+
+    // hub: (optional)
+    // defines whether the server will act as a hub (hold multiple
+    // simultaneous server connections)
+    hub no;
+
+    // info: (optional)
+    // the 'information' (or gecos) field of the server.  will be truncated
+    // at 50 characters.
+    info "no info provided.";
+
+    // name: (required)
+    // the name of the server.  this cannot be changed after server startup.
+    name "a.nameless.server";
+    
+    // network: (optional)
+    // the "network" this server belongs to.  should be one word only.
+    network "the-one-armed-network";
+
+    // network-full: (optional)
+    // the long-form name of the network this server belongs to.  may be
+    // multiple words.  used in RPL_WELCOME and other places.
+    network-full "the one armed network";
+
+    // nicklen: (optional)
+    // the maximum length of nicknames
+    // NOTE 1: This cannot exceed NICKLEN as defined in ircd.h nor can it
+    //         be less than 9.
+    // NOTE 2: If this is not unified across all servers you will be
+    //         gauranteed to have HUGE problems.
+    nicklen 30;
+
+    // ports: (required)
+    // this option sets up ports bound to the default address.  they may be
+    // listed separated by commas or spaces, or be a range.  for example
+    // using "6660-6669,7000" will bind to ports 6660, 6661, 6662, ... 6669,
+    // and 7000
+    ports <some ports here>;
+    // in section form the 'ports' option allows an address to be specified
+    // as well.
+    ports {
+        address <some.address.here>;
+        ports <some ports here>;
+    };
+
+    // services-host: commands/services (optional)
+    // This provides a hostname for the 'services' commands (/chanserv et
+    // al) to use when sending messages to service robots.  It is used for
+    // /chanserv, /memoserv, /nickserv, and /rootserv.
+    services-host someone.forgot.to.configure.stuff;
+
+    // stats-host: commands/services (optional)
+    // This provides a hostname for the 'services' commands to use when
+    // sending messages to the "statistic" robots.  It is used for
+    // /helpserv, /operserv, and /statserv.
+    stats-host someone.forgot.to.configure.stuff;
+
+    // version: (optional)
+    // an override for the version the server displays
+    // both this and version-comment below are printf-like strings with
+    // three potential arguments.  the first argument is the version of the
+    // base system, the second is the version of the IRC server, and the
+    // third is the revision number of the software.  The first two
+    // arguments are strings, the third is an integer, so the basic format
+    // is "%s %s %d".  If you'd like to omit one (or both) of the first
+    // two but use a later argument simply do "%0.0s".  To omit the last
+    // argument(s) simply leave them out of the format.  Some examples
+    // follow:
+    // version "%s+ircd%s.r%d"; <- the default version
+    // version "%0.0sircd%s"; <- a version which will look like 'ircd1.0b11'
+    // version "%s"; <- just show the base system version (e.g. 'ithildin-1.1')
+    // version "%s(r%0.0s%d)"; <- something like 'ithildin-1.1(r42)'
+    //
+    // Of course you are free to specify your own version string with none
+    // of the arguments included.  Remember though, if for whatever reason
+    // you need to place a % in the string to use '%%' instead.
+    version <some version gunk here>;
+
+    // version-comment: (optional)
+    // an override for the 'version comment' the server displays
+    version-comment <some blinding witticism>;
+};
+
+// hostcrypt: addons/hostcrypt
+// This controls the system used to hash/encrypt users' addresses when they
+// use the hostname hiding mode.  The following methods are available:
+// - austhex: weak hash, proven broken, there for compatibility.
+// - md5: relatively strong hash.  completely hides address.  this is the
+//        default
+hostcrypt md5;
+// hostcrypt-operhost: addons/hostcrypt
+// This specifies a full hostname to give to operators instead of an
+// encrypted name if they request encryption.  Be careful to set this to the
+// same value across the network to alleviate confusion.
+hostcrypt-operhost <whatever-gets-you-off>;
+// hostcrypt-prefix: addons/hostcrypt
+// This prefixes an encrypted hostname with the given string (by default
+// there is no prefix)
+hostcrypt-prefix <whatever-you-like>;
+// hostcrypt-suffix: addons/hostcrypt
+// This adds a suffix to an encrypted hostname with the given string (by
+// default there is no suffix)
+hostcrypt-suffix <whatever-you-enjoy>;
+
+// message-set: (required)
+// This allows for different "message sets" to be created.  Message sets
+// provide for multiple customized response texts.  Each message in a
+// message set should be specified using the form:
+// message-name "the format";
+// A couple of examples are provided below.  XXX: no full list of
+// message-sets exists.  It is strongly recommended that you create the
+// first message-set in your configuration file with no changes and call it
+// 'default' as shown below.
+message-set default {};
+message-set <some-other-name> {
+    401 "%s :No such alien/planet";
+    421 "%s :That command is not recognised. BZZT.";
+};
+
+// operator: commands/oper (optional)
+// the operator section is used to define server operators.
+operator <some-oper-nick> {
+    // class: (optional)
+    // this specifies a connection class to place the operator in after a
+    // successful /oper attempt.
+    class <some-special-class>;
+
+    // flags: (optional)
+    // this specifies a list of flags to set on the user after a successful
+    // attempt.  this requires that the 'FLAGS' command be loaded.
+    flags "+some -flags +here";
+
+    // host: (required, or host-list)
+    // this specifies a hostmask (user@host or host) to check against when
+    // oper requests for this operator are sent.  it may be used multiple
+    // times.
+    host <some@host.mask>;
+
+    // host-list: (required, or host)
+    // this specifies a host-list to use for checking oper requests.  it may
+    // be used multiple times.
+    host-list <some-list-name>;
+
+    // message-set: (optional)
+    // this provides an optional message set to switch the operator to after
+    // a successful attempt.
+    message-set <some-mset>;
+
+    // modes: (optional)
+    // this specifies additional usermodes to set on the operator after a
+    // successful attempt.  +o is implied, of course, no matter what.
+    modes "+some-modes";
+
+    // pass: (required)
+    // this specifies the password (md5 encrypted) for the operator
+    pass "some-md5-password";
+
+    // privilege-set: (required)
+    // this specifies the privilege set this operator should be placed in.
+    // the privilege set MUST specify the 'operator' privilege as
+    // yes/positive.
+    privilege-set <some-pset>;
+};
+
+// privilege-set: (required)
+// privilege sets are a lot like message sets, except that they are used to
+// specify various privileges.  privilege sets are given at connect time,
+// but can be changed through the use of some commands (notably /oper).  all
+// privileges available are listed within with their default values.  it is
+// recommended that the first privilege set you create be named 'defualt'
+// and have no specified values (e.g. take all pre-programmed defaults)
+// also, a privilege is created for each command with the command's name
+// prefixed by "command-" (e.g. command-away for the /away command) it is
+// boolean and defaults to "yes" and restricts access to the command beyond
+// the command's own normal access restrictions.
+// 
+// last but not least, the first privilege set with the 'operator' privilege
+// set to yes/true will be the default privilege set for remote operators as
+// well.  this will allow you to grant remote operators privileges above and
+// beyond those granted by being an operator (such as seeing hidden servers
+// or hostnames when issuing commands remotely to your server).  if you
+// don't want to worry about this then create a privilege set with only the
+// 'operator yes;' statement to give all remote opers the default
+// privileges, and then create your own custom sets below that.  this is
+// demonstrated below.
+privilege-set default {};
+privilege-set default-oper {
+    operator yes;
+};
+privilege-set <some-other-set> {
+    // administrator: addons/umode_admin (boolean)
+    // this flags anyone with this privilege set as a server administrator,
+    // which grants some additional privileges and displays prominently in
+    // /whois commands.  this privilege, if set, implies
+    // "services-administrator"
+    administrator no;
+
+    // away-length: commands/away (number)
+    // this specifies the maximum length of away messages.  by default it is
+    // the value of TOPICLEN as defined in ircd.h (usually 384)
+    away-length <whatever>;
+
+    // bypass-quarantine: addons/quarantine (boolean)
+    // this allows privileged users to bypass quarantines and use
+    // quarantined resources
+    bypass-quarantine no;
+
+    // connect: commands/connect (tuple)
+    // this specifies whether operators can perform remote /connect
+    // requests.  the two allowed values are "local" and "remote"
+    connect local;
+
+    // flag-chatops: commands/chatops (boolean)
+    // this allows operators to receive 'chatops' type messages
+    flag-chatops no;
+
+    // flag-connect: commands/flags (boolean)
+    // this allows operators to set the 'CONNECT" message flag on and view
+    // local user connect/disconnect messages
+    flag-connect no;
+
+    // flag-globops: commands/globops (boolean)
+    // this allows operators to view 'globops' type messages sent by other
+    // operators or servers.
+    flag-globops yes;
+
+    // flag-gnotice: commands/gnotice (boolean)
+    // this allows operators to view 'gnotice' messages sent from other
+    // servers.
+    flag-gnotice no;
+
+    // flag-locops: commands/locops (boolean)
+    // this allows operators to view 'locops' messages from other local
+    // operators.
+    flag-locops yes;
+
+    // flag-log: commands/flags (boolean)
+    // this allows operators to view log messages generated by the server.
+    flag-log no;
+
+    // flag-spy: commands/flags (boolean)
+    // this allows operators to view various actions performed by other users
+    // on the server.
+    flag-spy no;
+
+    // include: (special)
+    // the include directive is used to "include" another privilege set in
+    // the current one.  when including a privilege set local definitions
+    // will take precedence, followed by definitions in the included set,
+    // followed by the default.  multiple sets may be included, and will be
+    // evaluated in the order in which they are specified.
+    include <some-other-set>;
+
+    // kill: commands/kill (tuple)
+    // this controls whether operators can perform global kills or only
+    // local.  the two acceptable values are "local" and "global" (or
+    // remote).
+    kill local;
+
+    // maxchannels: commands/join (number)
+    // this specifies the maximum number of channels a user may be in at
+    // once.  set to 0 to remove any limit
+    maxchannels 10;
+
+    // maxsilence: commands/silence (number)
+    // this controls how many silence list entries a user may have.  0
+    // disables any limit
+    maxsilence 10;
+
+    // maxtargets: commands/notice (number)
+    // this specifies the maximum number of targets a user may specify in
+    // /privmsg or /notice commands.  If set to 0 no limit is enforced.
+    maxtargets 20;
+
+    // maxwatch: commands/watch (number)
+    // this controls how many watch list entries a user may have.  0
+    // disables any limit
+    maxwatch 128;
+
+    // operator: (boolean)
+    // this is the privilege which controls whether a user may "oper up"
+    // (become a server operator).  once a user has obtained the operator
+    // privilege they can freely modify the 'o' usermode (and typically many
+    // other user modes and message flags)
+    operator no;
+
+    // rehash: commands/rehash (tuple)
+    // this specifies whether an operator can issue remote rehashes.  the
+    // two accepted values are "local" and "remote"
+    rehash local;
+
+    // see-decrypted-host: addons/hostcrypt (boolean)
+    // this allows privileged users to see the actual host of a masked user.
+    see-decrypted-host no;
+
+    // see-hidden-channels: addons/core (boolean)
+    // this allows privileged users to see hidden channels via certain
+    // commands.  usually these channels are marked with the '%' symbol
+    see-hidden-channels no;
+
+    // see-hidden-servers: (boolean)
+    // this allows privileged users to see servers marked as hidden.  use
+    // with care.
+    see-hiden-servers no;
+
+    // services-administrator: addons/umode_svcadmin (boolean)
+    // this privilege grants "services administrator" rights to a user.  it
+    // gives additional access to some commands and displays prominently in
+    // /whois output.
+    services-administrator no;
+
+    // squit: commands/rehash (tuple)
+    // this specifies whether an operator can issue remote squits.  the
+    // two accepted values are "local" and "remote"
+    squit local;
+
+    // who-reply-limit: commands/who (number)
+    // this sets a limit on the number of replies a user may receive to
+    // certain /who commands.  0 disables the limit.
+    who-reply-limit 200;
+
+    // who-see-invisible: commands/who (boolean)
+    // this allows a user to see invisible (+i) users in a /who command when
+    // they would not normally be able to
+    who-see-invisible no;
+};
+
+// protocols: (required)
+// The protocols section provides a list of protocols which will be provided
+// by the server for connecting clients and servers.  Available protocols
+// can be found in <installdir>/lib/ircd/protocols/ as dynamically linked
+// modules.
+protocols {
+    protocol1;
+    protocol2;
+};
+
+// quarantine: addons/quarantine (optional)
+// The quarantine section allows a mask or group of masks to be
+// 'quarantined' (unavailable for use except by privileged users).
+// Multiple quarantine sections may be used.
+quarantine {
+    // class: (optional)
+    // This provides a mask to match clients' connection classes against
+    // before checking to see if they are quarantined from a resource.
+    class <some pattern>;
+
+    // mask: (required)
+    // This provides the mask to use for the quarantine.  A mask beginning
+    // with a channel character (such as #) quarantines a channel, otherwise
+    // a nickname is quarantined.  Multiple masks may be specified in a
+    // single section in which case they will share the other parameters of
+    // the quarantine.
+    mask <a-nick-mask>;
+    mask <#a-channel-mask>;
+
+    // reason: (optional)
+    // An optional reason for the quarantine which will be sent to the user
+    // if access to the resource is denied.
+    reason <some reason you think sounds good>;
+};
+
+// server: (optional)
+// This section can be used to define parameters for other servers on the
+// network.
+server <server-name> {
+    // address: (optional)
+    // this is the address of the server.  this is used when checking
+    // incoming server connections and when making outgoing server
+    // connections.
+    address "some.address.here";
+
+    // class: (optional)
+    // This option specifies the connection class the server should be
+    // placed in.
+    class <some-class-here>;
+
+    // connect-from: (optional)
+    // This provides an address to bind to when connecting to the server.
+    connect-from "some.address";
+
+    // hidden: (optional)
+    // this is a boolean option which controls whether the server should be
+    // "hidden" (not viewable without correct privileges)
+    hidden no;
+
+    // hub: (optional)
+    // this allows a mask to be given specifying the servers which this
+    // server may hub (hold behind it).  this directive may be used multiple
+    // times.  to allow a server to hub anyting "hub *;" should be used.
+    hub <some-mask>;
+
+    // interval: (optional)
+    // this specifies an interval at which to attempt connecting to the
+    // server if it is not present on the network.  if no interval is
+    // specified or the value 0 is used then no automatic connections will
+    // be performed.
+    interval <some-interval>;
+
+    // master: (optional)
+    // This is a boolean flag which controls whether this server may act as
+    // a "master" server.  This is roughly equivalent to the old-style
+    // U:lines and allows the server (AND CLIENTS ON THE SERVER) to perform
+    // actions with little or no privilege checking involed.  Use this
+    // option with care!
+    master no;
+
+    // ourpass: (optional)
+    // This provides the password which we send to the server when
+    // establishing a connection.
+    ourpass "some-cleartext-password";
+
+    // port: (optional)
+    // this is the default port to use when connecting to the server.
+    port <some-port>;
+
+    // protocol: (optional)
+    // this specifies the protocol which the server connection should use
+    protocol "some-protocol";
+
+    // ssl: (optional) this is a boolean flag which specifies whether
+    // SSL should be used to establish a connection to the server.
+    // using SSL will turn off use of password verification as well as
+    // the checking of IPs.
+    ssl <yes|no>;
+
+    // theirpass: (optional)
+    // this specifies the password which the server must send us in order to
+    // establish a connection
+    theirpass "some-cleartext-password";
+};
+
+// throttle: addons/throttle (optional)
+// Section for various configuration parameters of the connection throttling
+// module.
+throttle {
+    // cache-length: (optional)
+    // Specifies how long throttles should be 'cached' for.  If a connection
+    // is throttled once the module will retain knowledge of that throttling
+    // for this length of time, and use that to determine how long to
+    // throttle for again if an infraction occurs later.
+    cache-length 1h;
+
+    // stages: (optional)
+    // In entry form this specifies how many stages of throttling to impose.
+    // In section form it provides a list of times to use for each stage of
+    // throttling.
+    stages 5;
+    stages { 3m; 9m; 27m; 1h21m; 4h3m; };
+
+    // trigger-count: (optional)
+    // Number of connection attempts before a throttle is triggered
+    trigger-count 3;
+
+    // trigger-time: (optional)
+    // Time in which connection attempts must occur to trigger a throttle
+    trigger-time 15s;
+};
+

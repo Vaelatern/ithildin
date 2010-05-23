@@ -1,0 +1,43 @@
+###############################################################################
+#
+# module.txt: basic instructions on creating modules
+#
+# Copyright 2002 the Ithildin Project.
+# See the COPYING file for more information on licensing and use.
+#
+# $Id: module.txt 490 2004-01-10 15:52:40Z wd $
+#
+###############################################################################
+
+Basic information for setting up a module:
+In the module's main file you need two global variables of name 'mheader'
+and 'mdepends'.  Additionally you may have functions to be called at load
+time and at unload time.
+
+You will need to include 'ithildin.h' in your module, then do the following:
+
+MODULE_REGISTER("your module version", "your load function",
+"your unload function);
+
+the first value is optional and specifies the version of your module.  if it
+is empty it should be the empty string ""
+the second and third values are also optional, and specify the symbol names
+of functions to call when the module is loaded and unloaded.  They may be
+empty if no such functions exist.  You must *NOT* use init() and fini() for
+this!
+
+Following that, if your module has any dependencies, you should place them
+in a comment that looks like this:
+/*
+@DEPENDENCIES@: module1 module2 module3 ...
+*/
+Several lines of that form are acceptable.
+
+If you need to find a module symbol, you can either use 'module_symbol(mod,
+name)' if you have the module's structure, or 'lookup_module_symbol(modname,
+symname)' if you don't have it.
+
+The initialization function should return an integer value of non-zero if
+loading was successful, otherwise a value of 0 indicating that the module
+was NOT successful loading (the module will be closed and dropped in this
+case, and the unloader *WILL NOT* be called)

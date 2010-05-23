@@ -1,0 +1,123 @@
+###############################################################################
+#
+# style.txt: guide to recommended programming style/practices
+#
+# Copyright 2002 the Ithildin Project.
+# See the COPYING file for more information on licensing and use.
+#
+# $Id: style.txt 578 2005-08-21 06:37:53Z wd $
+#
+###############################################################################
+
+The following is a guide to explain the programming style used in this
+software, and to advise future developers, creators or patches, or other
+maintainers in regards to desirable programming practices.
+
+All files should contain the above notice/comment group, from the file
+description to the copyright notice to the svn tag.  For C files this should be
+done using /* */ style comments, as demonstrated below.
+
+###############################################################################
+
+C source and header file practices:
+
+/*
+ * Very important comments look like this.  They should be full sentences,
+ * and be paragraphed as necessary.  Rambles, rants, and personal complaints
+ * do not provide any benefit to understanding code, please do not add them.
+ */
+
+/* Less important comments look like this, they may overflow (as demonstrated
+ * here), but should be properly spaced on the left and aligned. */
+
+/* All files have 4-space logical tab stops.  Two tab-stops should be replaced
+ * with a single <tab>, not eight spaces.  Text wraps at column 79 in all
+ * files.  Long lines should be extended using the \<newline> mechanism. */
+
+/* Each C file (including headers) should contain the above notice with the
+ * below format: (be sure to keep the svn tag!) */
+
+/*
+ * file.name: brief summary of the purpose of the file
+ *
+ * Copyright 2002 the Ithildin Project.
+ * See the COPYING file for more information on licensing and use.
+ *
+ * Further description as necessary for each file.  You may omit this if the
+ * purpose/function of the contents is particularly obvious, or is documented
+ * elsewhere.
+ */
+
+/* Header files should be wrapped for safety using the format:
+ * [MODULE_]HEADER_H
+ * however, the wrapping should go BELOW the copyright/description.  An example
+ * of the wrapping is below: */
+#ifndef IRCD_CLIENT_H
+#define IRCD_CLIENT_H
+/* code here */
+#endif
+ 
+/* include statements should go as follows: any necessary system-wide files
+ * should be included first, followed by "stand.h", followed by any other
+ * necessary local includes.  The 'stand.h' include should be directly below
+ * the system includes (if they are used), and a blank line should be added
+ * before any necessary 'local' includes as demonstrated below: */
+
+#include <system/header.h>
+#include <ithildin/stand.h>
+
+/* be sure to include an id in your file so it can be identified later. */
+IDSTRING(rcsid, "$Id: style.txt 578 2005-08-21 06:37:53Z wd $");
+
+#include <module-header.h>
+
+/* function and structure declarations are placed below include (and other pre
+ * processor) directives.  Functions should be prototyped, and not
+ * safety-wrapped for K&R compilation (C89/90 has been out well over a decade).
+ * Function prototypes should not contain the names of the variables, only
+ * their types.  Variables should never be declared in header files, except as
+ * 'extern' and further declared in an appropriate C source file.  Structures
+ * should not, in most cases, be typedef'd.  examples follow: */
+
+/* Comments about the use of 'foo', and it's general purpose, go here.
+ * additionally, types should be separated from variable names by up to two
+ * tabstops.  Comments about structure's member variables' functions should be
+ * aligned whenever possible. */
+struct foo {
+    int            bar;        /* brief description of variable */
+    struct  baz abaz;        /* a baz structure */
+    longtypename avar;        /* another variable.
+
+    LIST_ENTRY(foo) lp; /* a list entry.  lists should be rolled with the
+                           macros in queue.h unless there is a pressing reason
+                           not to do so. */
+};
+
+/* Function prototypes go below structures.  Each function should be briefly
+ * described in the header file in which it is prototyped, and more fully
+ * described in its source file.  No attempt should be made to align the
+ * arguments of the function, and there should be a single space between the
+ * function's type(s) and the name of the function.  There should be no space
+ * between the name of the function and its argument list.  Functions with no
+ * arguments are prototyped as void, not with an empty list.  examples: */
+void func1(int, char *, char *, float);
+const int *func2(char *, char *);
+char *func3(void);
+
+/* Function definitions should resemble their prototyped definitions, except
+ * with named arguments.  Functions are defined in ANSI C format, NOT K&R
+ * format.  Each major function should be documented before declaration in a
+ * comment.  All variables within each function should be declared at the top
+ * of the function, unless it is necessary for clarity to declare them within a
+ * lower block.  There should be a blank line between the variable declarations
+ * and the beginning of function code, or a blank line between the function
+ * definition and the beginning of code if no variables are decalred.  Blank
+ * lines and comments should be used liberally to make the operations of a
+ * function clear.  examples are liberal in the code itself. */
+
+/* Braces go on the same line as the keyword/function, not on a separte line.
+ * They are optional for one-line if/else/for/while statements. */
+
+/* If other questions remain, and the style is not evident from existing code,
+ * please see the style(9) manual page on your nearest FreeBSD system *.
+

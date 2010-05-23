@@ -1,0 +1,18 @@
+------------------------------------------------------------------------
+$Id: DEVELOPERS 714 2006-03-28 13:50:51Z wd $
+------------------------------------------------------------------------
+The following people are actively working on the project:
+
+* Chip Norkus (wd@ithildin.org):
+  - Initial/main developer.
+  - The Maintainer. 
+
+------------------------------------------------------------------------
+The following people have contributed code or bugfixes with provided
+code which has been integrated:
+
+* Devon Bleak (devon@admin2.gisnetworks.com)
+  - Debugging and some Makefile fixes
+
+* Trystan Scott Lee (trystan@nomadirc.net)
+  - Debugging, style cleanup

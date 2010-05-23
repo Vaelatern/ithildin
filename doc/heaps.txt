@@ -1,0 +1,27 @@
+###############################################################################
+#
+# heaps.txt: documentation of the blockheap allocator.
+#
+# Copyright 2002 the Ithildin Project.
+# See the COPYING file for more information on licensing and use.
+#
+# $Id: heaps.txt 490 2004-01-10 15:52:40Z wd $
+#
+###############################################################################
+
+A simple description of the heap-allocation system:
+
+The heap allocator is a simple mechanism to prevent the cycle of malloc/free
+which often occurs when allocating items of the same size.  With a heap
+allocator, several items are allocated at once, and instead of returning the
+memory to the system, the memory is instead simply kept to be re-allocated
+later.  The system assumes that a lot of allocation and de-allocation will
+occur at once.
+
+The system uses a small/simple singly linked list within each heap to
+specify free memory.  The list takes up no additional memory, because the
+pointers are simply placed at the beginning of a free block in the heap,
+using the memory already allocated.  The list head does, of course, takes
+memory.  For more gory details, check out the actual code.
+
+
